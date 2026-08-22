@@ -1,13 +1,17 @@
 {
-  "rows_scanned": 200,
-  "documents": 3767,
-  "queries": 200,
-  "skipped_short": 13,
+  "rows_scanned": 4369,
+  "documents": 12009,
+  "queries": 800,
+  "skipped_short": 105,
   "languages": [
     "asm",
-    "eng"
+    "ben",
+    "eng",
+    "hin",
+    "tam",
+    "tel"
   ],
-  "unique": 3767,
-  "exact_dropped": 9,
-  "near_dropped": 205
+  "unique": 12009,
+  "exact_dropped": 2843,
+  "near_dropped": 652
 }
