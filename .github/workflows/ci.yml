@@ -6,6 +6,11 @@ on:
 
 env:
   HNSWLIB_NO_NATIVE: "1"
+  # And no wheel cache: the cache key does not include HNSWLIB_NO_NATIVE, so a
+  # cached native wheel from an earlier run would be restored and still crash.
+  # Compiling hnswlib from source each run costs ~30 s and removes the class of
+  # failure entirely.
+  UV_NO_CACHE: "1"
 
 jobs:
   quality:
@@ -15,6 +20,8 @@ jobs:
         with:
           lfs: true
       - uses: astral-sh/setup-uv@v5
+        with:
+          enable-cache: false
       - run: uv venv --python 3.12 .venv
       - run: uv pip install -e ".[dev]"
       - name: lint
@@ -34,6 +41,8 @@ jobs:
         with:
           lfs: true
       - uses: astral-sh/setup-uv@v5
+        with:
+          enable-cache: false
       - run: uv venv --python 3.12 .venv
       - run: uv pip install -e ".[dev]"
       - name: benchmark and evaluate
