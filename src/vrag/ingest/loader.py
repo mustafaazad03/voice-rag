@@ -88,7 +88,7 @@ def load_corpus(
     separate document — useful for code-switched voice queries).
     """
     wanted = {lang_code(x) for x in langs} if langs else None
-    rows = seed_rows if seed_rows is not None else _stream(split)
+    rows = seed_rows if seed_rows is not None else _stream(split, langs)
 
     dedup = Deduplicator(max_distance=dedupe_distance)
     documents: list[Document] = []
@@ -184,13 +184,73 @@ def _variants(passages: dict, text_field: str) -> list[tuple[str, list[str]]]:
     return [("xx", translated)] if translated else []
 
 
-def _stream(split: str) -> Iterator[dict]:
+# The dataset stores one parquet per language (`validation/hinval.parquet`, ...).
+# load_dataset concatenates them in file order, so a plain stream yields Assamese
+# for its first tens of thousands of rows and a `langs` filter applied on top of
+# it would scan — and discard — all of that before reaching Hindi. Addressing the
+# shards directly is what makes a multilingual corpus practical.
+LANGS = (
+    "asm",
+    "ben",
+    "guj",
+    "hin",
+    "kan",
+    "mal",
+    "mar",
+    "nep",
+    "ori",
+    "pan",
+    "san",
+    "tam",
+    "tel",
+    "urd",
+)
+
+
+def _shard_uri(split: str, lang: str) -> str:
+    return f"hf://datasets/{DATASET}/{split}/{lang}{split[:3]}.parquet"
+
+
+def _stream(split: str, langs: Iterable[str] | None = None) -> Iterator[dict]:
     try:
         from datasets import load_dataset
     except ImportError as exc:  # pragma: no cover
         raise RuntimeError("pip install 'vrag[ingest]' to pull the dataset") from exc
-    log.info("streaming_dataset", dataset=DATASET, split=split)
-    return iter(load_dataset(DATASET, split=split, streaming=True))
+
+    wanted = [lang_code(x) for x in langs] if langs else None
+    if not wanted:
+        log.info("streaming_dataset", dataset=DATASET, split=split)
+        return iter(load_dataset(DATASET, split=split, streaming=True))
+
+    unknown = [x for x in wanted if x not in LANGS]
+    if unknown:
+        raise ValueError(f"unknown language(s) {unknown}; available: {', '.join(LANGS)}")
+
+    log.info("streaming_shards", dataset=DATASET, split=split, langs=wanted)
+    streams = [
+        iter(
+            load_dataset(
+                "parquet", data_files=_shard_uri(split, lang), split="train", streaming=True
+            )
+        )
+        for lang in wanted
+    ]
+    return _interleave(streams)
+
+
+def _interleave(streams: list[Iterator[dict]]) -> Iterator[dict]:
+    """Round-robin the per-language streams so a query cap spreads across languages.
+
+    Taking `limit_queries` from a concatenation would spend the whole budget on the
+    first language, which is the bug this exists to avoid.
+    """
+    live = list(streams)
+    while live:
+        for stream in list(live):
+            try:
+                yield next(stream)
+            except StopIteration:
+                live.remove(stream)
 
 
 def lang_code(value: str) -> str:
