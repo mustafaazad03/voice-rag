@@ -1,0 +1,61 @@
+[project]
+name = "vrag"
+version = "0.1.0"
+description = "Voice-enabled RAG: Sarvam/ElevenLabs STT -> multi-strategy chunking -> hybrid retrieval -> grounded generation, under 200ms."
+readme = "README.md"
+requires-python = ">=3.11,<3.14"
+dependencies = [
+    "numpy>=1.26",
+    "scipy>=1.11",
+    "onnxruntime>=1.18",
+    "tokenizers>=0.19",
+    "huggingface-hub>=0.23",
+    "hnswlib>=0.8",
+    "bm25s>=0.2",
+    "scikit-learn>=1.4",
+    "pydantic>=2.7",
+    "pydantic-settings>=2.2",
+    "fastapi>=0.111",
+    "uvicorn[standard]>=0.30",
+    "python-multipart>=0.0.9",
+    "httpx>=0.27",
+    "structlog>=24.1",
+    "typer>=0.12",
+    "cachetools>=5.3",
+    "python-dotenv>=1.0",
+    "orjson>=3.10",
+]
+
+[project.optional-dependencies]
+ingest = ["datasets>=2.19", "pyarrow>=15"]
+dev = ["pytest>=8.2", "pytest-asyncio>=0.23", "ruff>=0.4", "mypy>=1.10"]
+
+[project.scripts]
+vrag = "vrag.cli:app"
+
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[tool.hatch.build.targets.wheel]
+packages = ["src/vrag"]
+
+[tool.ruff]
+line-length = 100
+target-version = "py311"
+
+[tool.ruff.lint]
+select = ["E", "F", "I", "UP", "B", "SIM"]
+# B008: typer/FastAPI express defaults as calls; that is the framework's API.
+# UP042: str+Enum is deliberate — it keeps JSON payloads as plain strings.
+ignore = ["E501", "B008", "UP042"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+asyncio_mode = "auto"
+filterwarnings = ["ignore::DeprecationWarning"]
+
+[tool.mypy]
+python_version = "3.12"
+strict = false
+ignore_missing_imports = true

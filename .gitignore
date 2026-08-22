@@ -1,0 +1,25 @@
+.venv/
+__pycache__/
+*.py[cod]
+.pytest_cache/
+.ruff_cache/
+.mypy_cache/
+*.egg-info/
+dist/
+build/
+
+# secrets — only .env.example is committed
+.env
+.env.*
+!.env.example
+
+# generated artefacts
+data/
+!data/.gitkeep
+models/
+
+# design reference, not part of the app
+Resources_hhgoa.com/
+.claude/
+
+BENCHMARKS.md
