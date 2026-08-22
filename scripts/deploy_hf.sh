@@ -40,7 +40,7 @@ echo "==> creating space $REPO if needed"
 echo "==> uploading $(du -sh "$STAGE" | cut -f1)"
 "$HF" upload "$REPO" "$STAGE" . --repo-type space \
     --commit-message "deploy voice-rag" \
-    --exclude "**/__pycache__/**" "*.pyc"
+    --exclude "**/__pycache__/**" --exclude "*.pyc"
 
 cat <<DONE
 
