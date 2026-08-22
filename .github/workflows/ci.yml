@@ -1,0 +1,50 @@
+name: ci
+
+on:
+  push:
+  pull_request:
+
+jobs:
+  quality:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          lfs: true
+      - uses: astral-sh/setup-uv@v5
+      - run: uv venv --python 3.12 .venv
+      - run: uv pip install -e ".[dev]"
+      - name: lint
+        run: |
+          .venv/bin/ruff check src tests
+          .venv/bin/ruff format --check src tests
+      - name: tests
+        run: .venv/bin/python -m pytest tests/ -q
+
+  # The eval gate. Reruns the measurements against the committed index and fails
+  # the build if retrieval quality, latency or the guardrails regressed. This is
+  # the difference between having benchmarks and being held to them.
+  eval-gate:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          lfs: true
+      - uses: astral-sh/setup-uv@v5
+      - run: uv venv --python 3.12 .venv
+      - run: uv pip install -e ".[dev]"
+      - name: benchmark and evaluate
+        run: |
+          .venv/bin/vrag bench --n 300 --warmup 30
+          .venv/bin/vrag eval-guardrails
+      - name: enforce thresholds
+        run: .venv/bin/python scripts/check_thresholds.py
+      - name: regenerate BENCHMARKS.md
+        run: .venv/bin/vrag report
+      - name: fail if BENCHMARKS.md is stale
+        run: git diff --exit-code BENCHMARKS.md
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: reports
+          path: reports/

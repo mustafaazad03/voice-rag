@@ -7,7 +7,7 @@ import pytest
 from fastapi.testclient import TestClient
 
 from vrag import api
-from vrag.errors import STTUnavailable
+from vrag.errors import PayloadTooLarge, STTUnavailable
 
 
 @pytest.fixture()
@@ -94,3 +94,60 @@ def test_interactive_docs_are_not_exposed(client):
     """The schema browser is deliberately off; the README is the documentation."""
     for path in ("/docs", "/redoc", "/openapi.json"):
         assert client.get(path).status_code == 404, path
+
+
+def test_oversized_upload_is_rejected_on_the_declared_length(client, settings):
+    """Rejected at the boundary: the body must never be buffered to find this out."""
+    original = settings.stt_max_audio_bytes
+    settings.stt_max_audio_bytes = 1024
+    try:
+        files = {"audio": ("a.wav", b"x" * 4096, "audio/wav")}
+        resp = client.post("/api/v1/voice/query", files=files)
+        assert resp.status_code == PayloadTooLarge.http_status
+        assert resp.json()["error"]["code"] == "payload_too_large"
+    finally:
+        settings.stt_max_audio_bytes = original
+
+
+def test_oversized_upload_is_rejected_without_a_content_length(client, settings):
+    """Chunked uploads declare no length, so the streaming read has to cap too."""
+    original = settings.stt_max_audio_bytes
+    settings.stt_max_audio_bytes = 1024
+    try:
+        resp = client.post(
+            "/api/v1/transcribe",
+            content=(
+                b"--b\r\n"
+                b'Content-Disposition: form-data; name="audio"; filename="a.wav"\r\n'
+                b"Content-Type: audio/wav\r\n\r\n" + b"x" * 8192 + b"\r\n--b--\r\n"
+            ),
+            headers={
+                "Content-Type": "multipart/form-data; boundary=b",
+                "Transfer-Encoding": "chunked",
+            },
+        )
+        assert resp.status_code == PayloadTooLarge.http_status
+    finally:
+        settings.stt_max_audio_bytes = original
+
+
+def test_api_key_gates_the_endpoints_when_one_is_configured(client, settings):
+    settings.api_key = "s3cret"
+    try:
+        assert client.post("/api/v1/query", json={"query": "hi"}).status_code == 401
+        assert client.get("/metrics").status_code == 401
+        # Health stays open: a platform probe should not need the secret.
+        assert client.get("/api/v1/health").status_code == 200
+        ok = client.post(
+            "/api/v1/query",
+            json={"query": "what is a corporation"},
+            headers={"X-API-Key": "s3cret"},
+        )
+        assert ok.status_code == 200
+    finally:
+        settings.api_key = None
+
+
+def test_endpoints_stay_open_when_no_api_key_is_configured(client, settings):
+    assert settings.api_key is None
+    assert client.get("/metrics").status_code == 200

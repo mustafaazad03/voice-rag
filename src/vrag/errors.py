@@ -72,6 +72,16 @@ class CircuitOpen(VRagError):
     retryable = True
 
 
+class Unauthorized(VRagError):
+    code = "unauthorized"
+    http_status = 401
+
+
+class PayloadTooLarge(VRagError):
+    code = "payload_too_large"
+    http_status = 413
+
+
 class RateLimited(VRagError):
     code = "rate_limited"
     http_status = 429

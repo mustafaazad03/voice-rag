@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import secrets
 import time
 from collections import defaultdict
 from contextlib import asynccontextmanager
@@ -13,7 +14,7 @@ from fastapi.responses import FileResponse, JSONResponse, PlainTextResponse
 from fastapi.staticfiles import StaticFiles
 
 from .config import get_settings
-from .errors import IndexNotReady, RateLimited, VRagError
+from .errors import IndexNotReady, PayloadTooLarge, RateLimited, Unauthorized, VRagError
 from .harness.pipeline import RAGPipeline
 from .models import QueryRequest, RAGResponse
 from .obs import METRICS, configure_logging, get_logger
@@ -83,6 +84,62 @@ def _allow(client: str) -> bool:
         return False
     _buckets[client] = (tokens - 1.0, now)
     return True
+
+
+# --------------------------------------------------------------------------- #
+# Auth. Optional by design: an unset API_KEY leaves the instance open, which is
+# what the public demo wants. Setting it locks every /api/v1 call and /metrics.
+# Health stays open either way so a platform probe does not need the secret.
+# --------------------------------------------------------------------------- #
+OPEN_PATHS = ("/api/v1/health",)
+
+
+def _authorized(request: Request, expected: str) -> bool:
+    path = request.url.path
+    if path.startswith(OPEN_PATHS) or not (path.startswith("/api/") or path == "/metrics"):
+        return True
+    return secrets.compare_digest(request.headers.get("x-api-key", ""), expected)
+
+
+@app.middleware("http")
+async def authenticate(request: Request, call_next):
+    expected = get_settings().api_key
+    if expected and not _authorized(request, expected):
+        METRICS.inc("unauthorized_total")
+        return JSONResponse(
+            status_code=Unauthorized.http_status,
+            content=Unauthorized("Missing or invalid X-API-Key").envelope(),
+        )
+    return await call_next(request)
+
+
+# --------------------------------------------------------------------------- #
+# Upload cap. Checked at the boundary, before anything is buffered: the STT
+# router's own limit runs after the bytes are already resident, so on its own it
+# stops a bad transcription, not a memory exhaustion.
+# --------------------------------------------------------------------------- #
+async def _read_capped(upload: UploadFile, limit: int) -> bytes:
+    """Read at most `limit` bytes, then fail. Never materialises more than that."""
+    buf = bytearray()
+    while chunk := await upload.read(1 << 20):
+        buf.extend(chunk)
+        if len(buf) > limit:
+            raise PayloadTooLarge("Audio too large", limit=limit)
+    return bytes(buf)
+
+
+@app.middleware("http")
+async def cap_upload(request: Request, call_next):
+    """Reject an oversized body on the declared length, before reading it."""
+    declared = request.headers.get("content-length")
+    limit = get_settings().stt_max_audio_bytes
+    if declared and declared.isdigit() and int(declared) > limit:
+        METRICS.inc("payload_too_large_total")
+        return JSONResponse(
+            status_code=PayloadTooLarge.http_status,
+            content=PayloadTooLarge("Audio too large", limit=limit).envelope(),
+        )
+    return await call_next(request)
 
 
 @app.middleware("http")
@@ -157,7 +214,7 @@ async def voice_query(
     top_k: int | None = Form(default=None),
     generator: str | None = Form(default=None),
 ) -> RAGResponse:
-    data = await audio.read()
+    data = await _read_capped(audio, get_settings().stt_max_audio_bytes)
     base = QueryRequest(query="pending transcription", top_k=top_k, generator=generator)
     return await _pipeline().answer_voice(
         data,
@@ -172,7 +229,7 @@ async def voice_query(
 async def transcribe(
     audio: UploadFile = File(...), language: str | None = Form(default=None)
 ) -> dict:
-    data = await audio.read()
+    data = await _read_capped(audio, get_settings().stt_max_audio_bytes)
     result = await _pipeline().stt.transcribe(
         data, audio.filename or "audio.webm", audio.content_type or "", language
     )

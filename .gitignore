@@ -13,9 +13,12 @@ build/
 .env.*
 !.env.example
 
-# generated artefacts
-data/
-!data/.gitkeep
+# generated artefacts. data/index is the exception: the CI eval gate re-runs the
+# benchmarks against it, so the committed index is what the numbers refer to.
+# Largest file is 18 MB, comfortably under GitHub's 100 MB limit — no LFS needed.
+data/*
+!data/index/
+data/index/*.bak
 models/
 
 # design reference, not part of the app

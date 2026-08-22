@@ -1,0 +1,19 @@
+{
+  "strategy": "hierarchical",
+  "chunk_params": {},
+  "dim": 384,
+  "size": 10138,
+  "documents": 3767,
+  "embed_repo": "intfloat/multilingual-e5-small",
+  "build_ms": {
+    "chunk": 988.6,
+    "embed": 595033.0,
+    "index": 2093.3
+  },
+  "chunk_chars": {
+    "mean": 166.3,
+    "p50": 158,
+    "p95": 309
+  },
+  "built_at": "2026-08-17T04:56:36Z"
+}

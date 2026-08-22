@@ -114,6 +114,9 @@ class Settings(BaseSettings):
         default_factory=lambda: ["http://localhost:8000"]
     )
     rate_limit_per_min: int = 60
+    # Unset -> open instance (the public demo). Set -> every /api/v1 call and
+    # /metrics must carry `X-API-Key`. Health stays open for platform probes.
+    api_key: str | None = None
     log_level: str = "INFO"
     log_json: bool = True
 
