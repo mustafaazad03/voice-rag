@@ -28,13 +28,13 @@ voice ─▶ STT ─▶ guardrails ─▶ embed ─▶ hybrid retrieval ─▶ r
 
 | requirement | where | short version |
 |---|---|---|
-| Voice → STT | [`src/vrag/stt/`](src/vrag/stt/) · [§1](#1--speech-to-text--sarvam-with-elevenlabs-as-fallback) | Sarvam `saaras:v3`, ElevenLabs `scribe_v1` fallback, chosen by which env keys exist |
-| Chunking, non-naive | [`src/vrag/chunking/`](src/vrag/chunking/) · [§2](#2--chunking--eight-strategies-chosen-by-measurement) | 8 strategies + overlap merging + dedup, compared on real metrics |
-| Retrieval → answer | [`src/vrag/retrieve/`](src/vrag/retrieve/), [`generate/`](src/vrag/generate/) · [§3](#3--retrieval-and-generation) | BM25 + HNSW, RRF, learned reranker, citation-backed generation |
-| < 200 ms end to end | [BENCHMARKS.md](BENCHMARKS.md) · [§4](#4--latency) | P50 ≈ 22 ms, P100 ≈ 63 ms, 100% under target, budget enforced in code |
+| Voice → STT | [`src/vrag/stt/`](src/vrag/stt/) · [#1](#1--speech-to-text--sarvam-with-elevenlabs-as-fallback) | Sarvam `saaras:v3`, ElevenLabs `scribe_v1` fallback, chosen by which env keys exist |
+| Chunking, non-naive | [`src/vrag/chunking/`](src/vrag/chunking/) · [#2](#2--chunking--eight-strategies-chosen-by-measurement) | 8 strategies + overlap merging + dedup, compared on real metrics |
+| Retrieval → answer | [`src/vrag/retrieve/`](src/vrag/retrieve/), [`generate/`](src/vrag/generate/) · [#3](#3--retrieval-and-generation) | BM25 + HNSW, RRF, learned reranker, citation-backed generation |
+| < 200 ms end to end | [BENCHMARKS.md](BENCHMARKS.md) · [#4](#4--latency) | P50 ≈ 22 ms, P100 ≈ 63 ms, 100% under target, budget enforced in code |
 | P50 / P70 / P100 | `vrag bench` → [BENCHMARKS.md](BENCHMARKS.md) | 300 cold queries, warm-up discarded, nearest-rank percentiles |
-| Harness, not a raw prompt | [`src/vrag/harness/`](src/vrag/harness/) · [§5](#5--the-harness) | typed stages, tool router, retries, circuit breakers, budget degradation |
-| Guardrails | [`src/vrag/guardrails/`](src/vrag/guardrails/) · [§6](#6--guardrails--knowing-when-not-to-answer) | input policy, confidence abstention, per-sentence grounding check, adversarial evals |
+| Harness, not a raw prompt | [`src/vrag/harness/`](src/vrag/harness/) · [#5](#5--the-harness) | typed stages, tool router, retries, circuit breakers, budget degradation |
+| Guardrails | [`src/vrag/guardrails/`](src/vrag/guardrails/) · [#6](#6--guardrails--knowing-when-not-to-answer) | input policy, confidence abstention, per-sentence grounding check, adversarial evals |
 
 ---
 
