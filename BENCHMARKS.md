@@ -33,26 +33,26 @@ dominant cost — roughly in half.
 
 | P50 | P70 | P90 | P95 | P99 | P100 | mean | under 200 ms |
 |---|---|---|---|---|---|---|---|
-| **22.1 ms** | **23.5 ms** | **27.2 ms** | **30.3 ms** | **41.5 ms** | **62.7 ms** | 22.7 ms | 100.0% |
+| **16.7 ms** | **17.6 ms** | **20.0 ms** | **21.1 ms** | **23.7 ms** | **31.7 ms** | 16.8 ms | 100.0% |
 
-Index: 10,138 chunks from 3,767 passages, strategy `hierarchical`.
+Index: 32,610 chunks from 12,009 passages, strategy `hierarchical`.
 
 ### Where the time goes
 
 | stage | P50 | P95 | P100 |
 |---|---|---|---|
-| `embed.query` | 13.34 ms | 19.02 ms | 50.79 ms |
-| `retrieve.hybrid` | 2.62 ms | 4.54 ms | 7.28 ms |
-| `rerank` | 1.87 ms | 3.43 ms | 7.19 ms |
-| `retrieve.merge_overlap` | 1.52 ms | 3.17 ms | 4.71 ms |
-| `generate` | 1.15 ms | 2.33 ms | 4.79 ms |
-| `guard.grounding` | 0.47 ms | 0.92 ms | 1.61 ms |
-| `confidence` | 0.30 ms | 0.61 ms | 3.25 ms |
-| `guard.input` | 0.07 ms | 0.13 ms | 0.25 ms |
+| `embed.query` | 8.04 ms | 11.14 ms | 19.45 ms |
+| `rerank` | 2.66 ms | 3.71 ms | 6.20 ms |
+| `retrieve.hybrid` | 2.46 ms | 4.67 ms | 6.42 ms |
+| `retrieve.merge_overlap` | 1.19 ms | 2.09 ms | 3.27 ms |
+| `generate` | 1.01 ms | 1.57 ms | 1.94 ms |
+| `guard.grounding` | 0.44 ms | 0.67 ms | 0.87 ms |
+| `confidence` | 0.29 ms | 0.52 ms | 0.71 ms |
+| `guard.input` | 0.06 ms | 0.09 ms | 0.12 ms |
 
 The query encoder dominates and is independent of corpus size; retrieval over the HNSW + BM25 pair is a few milliseconds and grows logarithmically. That is why the budget holds as the index grows — the constant term is the model, not the data.
 
-Outcome mix over the run: `{"answered": 251, "insufficient_evidence": 49}`. Abstentions are the guardrails working, not failures — see section 3.
+Outcome mix over the run: `{"answered": 227, "off_topic": 39, "insufficient_evidence": 34}`. Abstentions are the guardrails working, not failures — see section 3.
 
 <!-- BENCH:CHUNKING -->
 
@@ -77,7 +77,7 @@ Outcome mix over the run: `{"answered": 251, "insufficient_evidence": 49}`. Abst
 
 `vrag eval-guardrails` — adversarial cases plus real in-domain queries sampled from the corpus, scored in both directions.
 
-- accuracy **81.8%**
+- accuracy **82.6%**
 - under-refusals (answered something it should not have): **1**
 - over-refusals (refused something it could answer): **3**
 - in-domain answer rate: **72.7%**
@@ -94,16 +94,17 @@ Outcome mix over the run: `{"answered": 251, "insufficient_evidence": 49}`. Abst
 | empty | refuse | `blocked` | yes |
 | gibberish | refuse | `blocked` | yes |
 | off_topic | refuse | `insufficient_evidence` | yes |
-| off_topic | refuse | `answered` | **no** |
-| unanswerable | refuse | `insufficient_evidence` | yes |
+| action | refuse | `blocked` | yes |
+| action | refuse | `blocked` | yes |
+| unanswerable | refuse | `answered` | **no** |
 | pii | answer | `answered` | yes |
 | in_domain | answer | `answered` | yes |
 | in_domain | answer | `answered` | yes |
 | in_domain | answer | `answered` | yes |
 | in_domain | answer | `insufficient_evidence` | **no** |
-| in_domain | answer | `insufficient_evidence` | **no** |
+| in_domain | answer | `off_topic` | **no** |
+| in_domain | answer | `answered` | yes |
+| in_domain | answer | `answered` | yes |
+| in_domain | answer | `answered` | yes |
 | in_domain | answer | `answered` | yes |
 | in_domain | answer | `insufficient_evidence` | **no** |
-| in_domain | answer | `answered` | yes |
-| in_domain | answer | `answered` | yes |
-| in_domain | answer | `answered` | yes |

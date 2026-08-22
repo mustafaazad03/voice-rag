@@ -2,18 +2,18 @@
   "strategy": "hierarchical",
   "chunk_params": {},
   "dim": 384,
-  "size": 10138,
-  "documents": 3767,
+  "size": 32610,
+  "documents": 12009,
   "embed_repo": "intfloat/multilingual-e5-small",
   "build_ms": {
-    "chunk": 988.6,
-    "embed": 595033.0,
-    "index": 2093.3
+    "chunk": 2755.3,
+    "embed": 675681.6,
+    "index": 4532.2
   },
   "chunk_chars": {
-    "mean": 166.3,
-    "p50": 158,
-    "p95": 309
+    "mean": 169.7,
+    "p50": 160,
+    "p95": 311
   },
-  "built_at": "2026-08-17T04:56:36Z"
+  "built_at": "2026-08-22T09:12:36Z"
 }
