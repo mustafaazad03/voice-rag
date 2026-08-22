@@ -1,0 +1,13 @@
+{
+  "rows_scanned": 200,
+  "documents": 3767,
+  "queries": 200,
+  "skipped_short": 13,
+  "languages": [
+    "asm",
+    "eng"
+  ],
+  "unique": 3767,
+  "exact_dropped": 9,
+  "near_dropped": 205
+}

@@ -18,7 +18,9 @@ build/
 # Largest file is 18 MB, comfortably under GitHub's 100 MB limit — no LFS needed.
 data/*
 !data/index/
+!data/corpus/
 data/index/*.bak
+data/corpus*.bak
 models/
 
 # design reference, not part of the app
